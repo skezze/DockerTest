@@ -1,23 +1,12 @@
-﻿FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
-USER $APP_UID
-WORKDIR /app
-EXPOSE 8080
-EXPOSE 8081
-
+﻿# Build Stage
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-ARG BUILD_CONFIGURATION=Release
-WORKDIR /src
-COPY ["DockerTest.Api/DockerTest.Api.csproj", "DockerTest.Api/"]
-RUN dotnet restore "DockerTest.Api/DockerTest.Api.csproj"
-COPY . .
-WORKDIR "/src/DockerTest.Api"
-RUN dotnet build "DockerTest.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
-
-FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "DockerTest.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
-
-FROM base AS final
 WORKDIR /app
-COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "DockerTest.Api.dll"]
+COPY ./DockerTest.Api.csproj ./
+RUN dotnet restore
+COPY . .
+RUN dotnet publish ./DockerTest.Api.csproj -c release -o build
+# Runtime Stage
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+WORKDIR /app
+COPY --from=build /app ./
+ENTRYPOINT [ "dotnet", ".build/DockerTest.Api.dll" ]
